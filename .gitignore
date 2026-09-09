@@ -1,0 +1,11 @@
+# Virtual Environments and Cache
+venv/
+__pycache__/
+*.pyc
+
+# Project Specific Local Storage
+tmp/
+.env
+
+# AI Models (Crucial: prevents pushing GBs to GitHub)
+*.gguf
