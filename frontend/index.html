@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser Agent Dashboard — SIH 2026</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 24px 24px 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Header ───────────────────────────────────────────── */
+        header {
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        header h1 {
+            font-size: 28px;
+            background: linear-gradient(90deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        header p {
+            color: #94a3b8;
+            margin-top: 4px;
+            font-size: 14px;
+        }
+
+        /* ── Control panel ───────────────────────────────────── */
+        .control-panel {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: flex-end;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1 1 300px;
+        }
+
+        .field label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+
+        .field input {
+            padding: 10px 12px;
+            background: #0f172a;
+            color: #e2e8f0;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .field input:focus {
+            outline: none;
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+        }
+
+        .field input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #runBtn {
+            padding: 10px 24px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            min-width: 140px;
+            transition: transform 0.1s ease, opacity 0.2s;
+        }
+
+        #runBtn:hover:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        #runBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status-chip {
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #334155;
+            color: #cbd5e1;
+            align-self: center;
+        }
+
+        .status-chip.connected {
+            background: #064e3b;
+            color: #6ee7b7;
+        }
+
+        .status-chip.disconnected {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        .status-chip.running {
+            background: #78350f;
+            color: #fcd34d;
+        }
+
+        .status-chip.done {
+            background: #064e3b;
+            color: #6ee7b7;
+        }
+
+        .status-chip.error {
+            background: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        /* ── Image row ───────────────────────────────────────── */
+        .image-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .image-panel {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            min-height: 420px;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .panel-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .panel-tag {
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .panel-tag.raw {
+            background: #1e40af;
+            color: #bfdbfe;
+        }
+
+        .panel-tag.redacted {
+            background: #7c2d12;
+            color: #fed7aa;
+        }
+
+        .image-slot {
+            flex: 1;
+            background: #0f172a;
+            border: 2px dashed #475569;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            color: #64748b;
+            font-size: 14px;
+            text-align: center;
+            padding: 24px;
+        }
+
+        .image-slot img {
+            max-width: 100%;
+            max-height: 420px;
+            object-fit: contain;
+            border-radius: 4px;
+            border: none;
+        }
+
+        .image-slot.loaded {
+            border-style: solid;
+            border-color: #475569;
+            padding: 8px;
+        }
+
+        /* ── PII badge ───────────────────────────────────────── */
+        .pii-badge {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            border-radius: 6px;
+            font-size: 12.5px;
+            color: #fca5a5;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .pii-badge.visible {
+            display: flex;
+        }
+
+        .pii-badge .pii-icon {
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .pii-badge .pii-label {
+            font-weight: 600;
+            color: #f87171;
+        }
+
+        .pii-badge .pii-detail {
+            color: #fca5a5;
+            opacity: 0.85;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ── Log panel ───────────────────────────────────────── */
+        .log-panel {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .log-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .log-panel-header h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .log-clear {
+            background: transparent;
+            color: #94a3b8;
+            border: 1px solid #475569;
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .log-clear:hover {
+            color: #e2e8f0;
+            border-color: #64748b;
+        }
+
+        #logArea {
+            width: 100%;
+            min-height: 260px;
+            max-height: 340px;
+            overflow-y: auto;
+            background: #020617;
+            color: #94a3b8;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 12.5px;
+            line-height: 1.5;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .log-entry {
+            margin-bottom: 6px;
+            padding: 6px 8px;
+            border-left: 3px solid #334155;
+            background: #0f172a;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .log-entry .ts {
+            color: #475569;
+            font-size: 11px;
+            margin-right: 6px;
+        }
+
+        .log-entry .step {
+            font-weight: 600;
+            display: inline-block;
+            min-width: 120px;
+        }
+
+        .log-entry .ms {
+            color: #64748b;
+            font-size: 11px;
+            margin-left: 6px;
+        }
+
+        .log-entry.init .step {
+            color: #93c5fd;
+        }
+
+        .log-entry.navigate .step {
+            color: #93c5fd;
+        }
+
+        .log-entry.screenshot .step {
+            color: #a78bfa;
+        }
+
+        .log-entry.grounding .step {
+            color: #fbbf24;
+        }
+
+        .log-entry.redaction .step {
+            color: #f87171;
+        }
+
+        .log-entry.remote .step {
+            color: #2dd4bf;
+        }
+
+        .log-entry.action .step {
+            color: #34d399;
+        }
+
+        .log-entry.after_screenshot .step {
+            color: #a78bfa;
+        }
+
+        .log-entry.complete .step {
+            color: #34d399;
+        }
+
+        .log-entry.error .step {
+            color: #f87171;
+        }
+
+        .log-entry.reconnect .step {
+            color: #60a5fa;
+        }
+
+        .log-entry .payload {
+            color: #cbd5e1;
+            margin-top: 4px;
+            margin-left: 130px;
+            font-size: 12px;
+        }
+
+        /* ── Remote model response panel ─────────────────────── */
+        .remote-panel {
+            background: #0d2137;
+            border: 1.5px solid #0e7490;
+            /* distinct teal border */
+            border-radius: 10px;
+            padding: 18px 20px;
+            margin-bottom: 24px;
+            position: relative;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .remote-panel-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .remote-panel-header h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #7dd3fc;
+            /* sky blue */
+            flex: 1;
+        }
+
+        .remote-tag-mocked {
+            display: none;
+            padding: 2px 9px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            background: #164e63;
+            color: #67e8f9;
+            text-transform: uppercase;
+        }
+
+        .remote-tag-mocked.visible {
+            display: inline-block;
+        }
+
+        .remote-tag-latency {
+            display: none;
+            padding: 2px 9px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #1e3a5f;
+            color: #93c5fd;
+        }
+
+        .remote-tag-latency.visible {
+            display: inline-block;
+        }
+
+        #remoteBody {
+            min-height: 52px;
+            padding: 14px 16px;
+            background: #071828;
+            border: 1px solid #155e75;
+            border-radius: 6px;
+            font-size: 14.5px;
+            line-height: 1.65;
+            color: #e0f2fe;
+            font-style: italic;
+        }
+
+        #remoteBody.idle {
+            color: #334155;
+            font-size: 13px;
+        }
+
+        #remoteBody.populated {
+            font-style: normal;
+            color: #e0f2fe;
+            animation: fadeIn 0.5s ease;
+        }
+
+        /* ── Metrics footer ──────────────────────────────────── */
+        footer.metrics-footer {
+            margin-top: auto;
+            border-top: 1px solid #1e293b;
+            background: #0b1221;
+            padding: 14px 0;
+        }
+
+        .metrics-bar {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            flex-wrap: wrap;
+        }
+
+        .metrics-bar .bar-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #475569;
+            margin-right: 4px;
+        }
+
+        .metric-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .metric-item .m-icon {
+            font-size: 15px;
+        }
+
+        .metric-item .m-value {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .metric-item .m-label {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .metric-item.vram .m-value {
+            color: #818cf8;
+        }
+
+        .metric-item.vlm .m-value {
+            color: #fbbf24;
+        }
+
+        .metric-item.redact .m-value {
+            color: #f87171;
+        }
+
+        .metrics-divider {
+            width: 1px;
+            height: 20px;
+            background: #1e293b;
+        }
+
+        .metrics-loading {
+            color: #475569;
+            font-size: 13px;
+            font-style: italic;
+        }
+
+        @media (max-width: 900px) {
+            .image-row {
+                grid-template-columns: 1fr;
+            }
+
+            body {
+                padding: 16px 16px 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Browser Agent Control Center</h1>
+            <p>On-device autonomous browser agent prototype — SIH 2026 · Day 7</p>
+        </header>
+
+        <section class="control-panel">
+            <div class="field">
+                <label for="taskInput">Agent Task</label>
+                <input type="text" id="taskInput" value="Click the Login button"
+                    placeholder="e.g. Click the Login button">
+            </div>
+            <div class="field">
+                <label for="urlInput">Target URL / file path</label>
+                <input type="text" id="urlInput" value="test_pages/login_form.html"
+                    placeholder="https://... or file path">
+            </div>
+            <button id="runBtn">▶ Run Task</button>
+            <span id="statusChip" class="status-chip disconnected">WS: disconnected</span>
+        </section>
+
+        <section class="image-row">
+            <!-- Left: RAW before screenshot -->
+            <div class="image-panel">
+                <div class="panel-header">
+                    <span class="panel-title">Original (Raw)</span>
+                    <span class="panel-tag raw">BEFORE</span>
+                </div>
+                <div class="image-slot" id="beforeSlot">
+                    <div>Waiting for before_action.png…</div>
+                </div>
+            </div>
+
+            <!-- Right: Sanitized / redacted screenshot -->
+            <div class="image-panel">
+                <div class="panel-header">
+                    <span class="panel-title">Sanitized (Redacted)</span>
+                    <span class="panel-tag redacted">AFTER</span>
+                </div>
+                <div class="image-slot" id="afterSlot">
+                    <div>Waiting for after_action.png…</div>
+                </div>
+                <!-- PII badge — shown when redaction event arrives -->
+                <div class="pii-badge" id="piiBadge">
+                    <span class="pii-icon">🛡️</span>
+                    <span>
+                        <span class="pii-label" id="piiLabel">PII detected: 0 items</span>
+                        <span class="pii-detail" id="piiDetail"> — redacted locally</span>
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Remote Model Response panel ───────────────────────────────── -->
+        <section class="remote-panel" id="remotePanel">
+            <div class="remote-panel-header">
+                <h3>🤖 Remote Model Response <span style="color:#475569;font-weight:400;font-size:13px">(Sanitized Data
+                        Only)</span></h3>
+                <span class="remote-tag-latency" id="remoteLatency">1200 ms</span>
+                <span class="remote-tag-mocked" id="remoteMockedTag">[MOCKED]</span>
+            </div>
+            <div id="remoteBody" class="idle">Waiting for remote model response…</div>
+        </section>
+
+        <section class="log-panel">
+            <div class="log-panel-header">
+                <h3>Execution Metrics &amp; Events</h3>
+                <button id="clearLogBtn" class="log-clear">Clear</button>
+            </div>
+            <div id="logArea"></div>
+        </section>
+    </div><!-- /.container -->
+
+    <!-- ── Metrics footer ─────────────────────────────────────────────────── -->
+    <footer class="metrics-footer">
+        <div class="metrics-bar">
+            <span class="bar-label">⚡ Live Metrics</span>
+
+            <div class="metric-item vram" id="metricVram">
+                <span class="m-icon">🖥️</span>
+                <span class="m-value" id="mVramVal">—</span>
+                <span class="m-label">MB VRAM</span>
+            </div>
+
+            <div class="metrics-divider"></div>
+
+            <div class="metric-item vlm" id="metricVlm">
+                <span class="m-icon">🧠</span>
+                <span class="m-value" id="mVlmVal">—</span>
+                <span class="m-label">ms VLM</span>
+            </div>
+
+            <div class="metrics-divider"></div>
+
+            <div class="metric-item redact" id="metricRedact">
+                <span class="m-icon">🔒</span>
+                <span class="m-value" id="mRedactVal">—</span>
+                <span class="m-label">ms redaction</span>
+            </div>
+
+            <span class="metrics-loading" id="metricsLoading">Loading…</span>
+        </div>
+    </footer>
+
+    <script>
+        (function () {
+            const $ = (id) => document.getElementById(id);
+
+            const runBtn = $('runBtn');
+            const taskInput = $('taskInput');
+            const urlInput = $('urlInput');
+            const statusChip = $('statusChip');
+            const logArea = $('logArea');
+            const beforeSlot = $('beforeSlot');
+            const afterSlot = $('afterSlot');
+            const clearLogBtn = $('clearLogBtn');
+            const piiBadge = $('piiBadge');
+            const piiLabel = $('piiLabel');
+            const piiDetail = $('piiDetail');
+
+            // Remote panel elements
+            const remoteBody = $('remoteBody');
+            const remoteMockedTag = $('remoteMockedTag');
+            const remoteLatency = $('remoteLatency');
+
+            // Metrics elements
+            const mVramVal = $('mVramVal');
+            const mVlmVal = $('mVlmVal');
+            const mRedactVal = $('mRedactVal');
+            const metricsLoading = $('metricsLoading');
+
+            let ws = null;
+            let running = false;
+
+            // ── helpers ──────────────────────────────────────────────────────
+
+            function setStatus(text, cls) {
+                statusChip.textContent = text;
+                statusChip.className = 'status-chip ' + cls;
+            }
+
+            function timestamp() {
+                const d = new Date();
+                const p = (n) => n.toString().padStart(2, '0');
+                return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' +
+                    p(d.getSeconds()) + '.' + d.getMilliseconds().toString().padStart(3, '0');
+            }
+
+            function appendLog(evt) {
+                const step = evt.step || 'info';
+                const ms = (typeof evt.ms === 'number') ? (evt.ms + ' ms') : '';
+                const entry = document.createElement('div');
+                entry.className = 'log-entry ' + step;
+
+                const ignoredKeys = new Set(['step', 'status', 'ms', 'run_id']);
+                const payloadPairs = [];
+                for (const k of Object.keys(evt)) {
+                    if (ignoredKeys.has(k)) continue;
+                    let v = evt[k];
+                    if (typeof v === 'object') v = JSON.stringify(v);
+                    payloadPairs.push(k + ': ' + v);
+                }
+                const payload = payloadPairs.length
+                    ? '<div class="payload">' + payloadPairs.join('  •  ') + '</div>'
+                    : '';
+
+                entry.innerHTML =
+                    '<span class="ts">' + timestamp() + '</span>' +
+                    '<span class="step">' + step + '</span>' +
+                    (ms ? '<span class="ms">' + ms + '</span>' : '') +
+                    payload;
+
+                logArea.appendChild(entry);
+                logArea.scrollTop = logArea.scrollHeight;
+            }
+
+            function setImage(slotEl, src) {
+                slotEl.innerHTML = '';
+                slotEl.classList.add('loaded');
+                const img = document.createElement('img');
+                img.src = src;
+                img.alt = src;
+                slotEl.appendChild(img);
+            }
+
+            // ── PII badge ────────────────────────────────────────────────────
+
+            function showPiiBadge(count, types) {
+                piiLabel.textContent = `PII detected: ${count} item${count !== 1 ? 's' : ''}`;
+                const typeStr = (types && types.length)
+                    ? ' (' + types.join(', ') + ')'
+                    : '';
+                piiDetail.textContent = ` — redacted locally${typeStr}`;
+                piiBadge.classList.add('visible');
+            }
+
+            function resetPiiBadge() {
+                piiBadge.classList.remove('visible');
+            }
+
+            // ── Remote model panel ───────────────────────────────────────────
+
+            function showRemoteResponse(text, ms) {
+                remoteBody.textContent = text;
+                remoteBody.classList.remove('idle');
+                remoteBody.classList.add('populated');
+                remoteMockedTag.classList.add('visible');
+                if (ms != null) {
+                    remoteLatency.textContent = ms + ' ms';
+                    remoteLatency.classList.add('visible');
+                }
+            }
+
+            function resetRemotePanel() {
+                remoteBody.textContent = 'Waiting for remote model response…';
+                remoteBody.classList.remove('populated');
+                remoteBody.classList.add('idle');
+                remoteMockedTag.classList.remove('visible');
+                remoteLatency.classList.remove('visible');
+            }
+
+            // ── WebSocket ────────────────────────────────────────────────────
+
+            function connectWS() {
+                const proto = (location.protocol === 'https:') ? 'wss' : 'ws';
+                const url = proto + '://' + location.host + '/status';
+                ws = new WebSocket(url);
+
+                ws.onopen = function () {
+                    setStatus('WS: connected', 'connected');
+                };
+                ws.onclose = function () {
+                    setStatus('WS: disconnected', 'disconnected');
+                    setTimeout(connectWS, 1500);
+                };
+                ws.onerror = function () {
+                    try { ws.close(); } catch (_) { }
+                };
+
+                ws.onmessage = function (ev) {
+                    let evt;
+                    try { evt = JSON.parse(ev.data); } catch { return; }
+                    appendLog(evt);
+
+                    switch (evt.step) {
+
+                        case 'complete':
+                            running = false;
+                            runBtn.disabled = false;
+                            taskInput.disabled = false;
+                            urlInput.disabled = false;
+                            setStatus('Run complete', 'done');
+                            // Use sanitized_image_path for the right panel when available
+                            if (evt.before_image)
+                                setImage(beforeSlot, evt.before_image + '?_=' + Date.now());
+                            const sanPath = evt.sanitized_image_path || evt.after_image;
+                            if (sanPath)
+                                setImage(afterSlot, sanPath + '?_=' + Date.now());
+                            break;
+
+                        case 'error':
+                            running = false;
+                            runBtn.disabled = false;
+                            taskInput.disabled = false;
+                            urlInput.disabled = false;
+                            setStatus('Run errored', 'error');
+                            break;
+
+                        case 'screenshot':
+                            if (evt.image) setImage(beforeSlot, evt.image + '?_=' + Date.now());
+                            break;
+
+                        case 'after_screenshot':
+                            if (evt.image) setImage(afterSlot, evt.image + '?_=' + Date.now());
+                            setStatus('Running…', 'running');
+                            break;
+
+                        // ── NEW: redaction event ─────────────────────────────
+                        case 'redaction':
+                            showPiiBadge(
+                                evt.pii_count || 0,
+                                evt.pii_types || []
+                            );
+                            // Refresh /metrics so the footer stays current
+                            fetchMetrics();
+                            break;
+
+                        // ── NEW: remote VLM event ────────────────────────────
+                        case 'remote':
+                            showRemoteResponse(
+                                evt.response || '(no response)',
+                                evt.ms
+                            );
+                            break;
+
+                        case 'init':
+                        case 'navigate':
+                        case 'grounding':
+                        case 'action':
+                            setStatus('Running…', 'running');
+                            break;
+
+                        default:
+                            break;
+                    }
+                };
+            }
+
+            // ── Metrics footer ───────────────────────────────────────────────
+
+            async function fetchMetrics() {
+                try {
+                    const res = await fetch('/metrics');
+                    const data = await res.json();
+                    mVramVal.textContent = data.vram_mb != null ? data.vram_mb : '—';
+                    mVlmVal.textContent = data.vlm_ms != null ? data.vlm_ms : '—';
+                    mRedactVal.textContent = data.redaction_ms != null ? data.redaction_ms : '—';
+                    metricsLoading.style.display = 'none';
+                } catch (_) {
+                    metricsLoading.textContent = 'Metrics unavailable';
+                }
+            }
+
+            // ── Controls ─────────────────────────────────────────────────────
+
+            clearLogBtn.addEventListener('click', function () {
+                logArea.innerHTML = '';
+            });
+
+            runBtn.addEventListener('click', async function () {
+                if (running) return;
+                const task = taskInput.value.trim();
+                let url = urlInput.value.trim();
+                if (!task || !url) return;
+
+                // Normalise relative paths served by FastAPI
+                if (!/^https?:\/\//i.test(url) && !url.startsWith('file:')) {
+                    const abs = new URL(url, window.location.href);
+                    url = abs.pathname;
+                }
+
+                running = true;
+                runBtn.disabled = true;
+                taskInput.disabled = true;
+                urlInput.disabled = true;
+                setStatus('Run queued', 'running');
+                resetPiiBadge();
+                resetRemotePanel();
+                appendLog({ step: 'info', status: 'send', task: task, url: url });
+
+                try {
+                    const res = await fetch('/task', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ task: task, url: url }),
+                    });
+                    const data = await res.json();
+                    appendLog({ step: 'info', status: 'ack', run_id: data.run_id, queue_status: data.status });
+                } catch (err) {
+                    appendLog({ step: 'error', status: 'error', message: String(err) });
+                    running = false;
+                    runBtn.disabled = false;
+                    taskInput.disabled = false;
+                    urlInput.disabled = false;
+                    setStatus('Run errored', 'error');
+                }
+            });
+
+            // ── Init ─────────────────────────────────────────────────────────
+            connectWS();
+            fetchMetrics();
+
+        })();
+    </script>
+</body>
+
+</html>

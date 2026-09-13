@@ -1,0 +1,7 @@
+# SIH 2026-ISRO Prototype Constraints
+- **Role:** You are an expert Python and Vanilla JS developer building a local browser automation agent.
+- **Stack:** Python 3.11+, FastAPI (backend), async Playwright (browser), HTML/CSS/Vanilla JS (frontend). 
+- **Forbidden Tech:** Do NOT use React, Vue, Next.js, LangChain, LangGraph, or any SQL/NoSQL databases. Use in-memory state or local JSON files.
+- **Environment:** Development is running on a Lenovo LOQ with Windows. You MUST use `pathlib.Path` for all file paths. You MUST preserve the `WindowsProactorEventLoopPolicy` setup in `main.py` and `server/api.py` to prevent Playwright thread locking.
+- **File Output:** All generated screenshots and JSON DOM extracts must be saved to the project-relative `tmp/` directory.
+- **Team Contracts:** Do not modify the expected return signatures for `mock_redact(image_path, dom_json) -> dict` or `ask_vlm(image_path, prompt) -> str`.
