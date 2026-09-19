@@ -9,3 +9,4 @@ tmp/
 
 # AI Models (Crucial: prevents pushing GBs to GitHub)
 *.gguf
+.venv/
